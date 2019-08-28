@@ -59,41 +59,30 @@ public class AwsCrtClientBenchmark implements SdkHttpClientBenchmark {
 
     @Setup(Level.Trial)
     public void setup() throws Exception {
-        log.error(() ->"Setting things up");
         mockServer = new MockServer();
-        log.error(() ->"server created");
         mockServer.start();
-        log.error(() ->"Server is up");
 
         int numCores = Runtime.getRuntime().availableProcessors();
-        log.error(()-> "running with core count " + numCores);
         bootstrap = new ClientBootstrap(numCores);
-        log.error(() ->"bootstrap up");
         socketOptions = new SocketOptions();
-        log.error(() ->"socket up");
 
         tlsOptions = new TlsContextOptions();
         tlsOptions.setVerifyPeer(false);
         tlsContext = new TlsContext(tlsOptions);
-        log.error(() ->"tls up");
 
         sdkHttpClient = AwsCrtAsyncHttpClient.builder()
                 .bootstrap(bootstrap)
                 .socketOptions(socketOptions)
                 .tlsContext(tlsContext)
                 .build();
-        log.error(() ->"http client up");
 
         client = ProtocolRestJsonAsyncClient.builder()
                 .endpointOverride(mockServer.getHttpsUri())
                 .httpClient(sdkHttpClient)
                 .build();
-        log.error(() -> "protocol up");
-
 
         // Making sure the request actually succeeds
         client.allTypes().join();
-        log.error(() ->"Setup done");
     }
 
     @TearDown(Level.Trial)
@@ -111,36 +100,28 @@ public class AwsCrtClientBenchmark implements SdkHttpClientBenchmark {
     @Benchmark
     @OperationsPerInvocation(CONCURRENT_CALLS)
     public void concurrentApiCall(Blackhole blackhole) {
-        log.error(() ->"Starting concurrentApiCall");
         CountDownLatch countDownLatch = new CountDownLatch(CONCURRENT_CALLS);
         for (int i = 0; i < CONCURRENT_CALLS; i++) {
             countDownUponCompletion(blackhole, client.allTypes(), countDownLatch);
         }
-        log.error(() ->"concurrentApiCall process spawned");
 
         awaitCountdownLatchUninterruptibly(countDownLatch, 10, TimeUnit.SECONDS);
-        log.error(() ->"concurrentApiCall done");
 
     }
 
     @Override
     @Benchmark
     public void sequentialApiCall(Blackhole blackhole) {
-        log.error(() ->"Starting sequentialApiCall");
         CountDownLatch countDownLatch = new CountDownLatch(1);
         countDownUponCompletion(blackhole, client.allTypes(), countDownLatch);
         awaitCountdownLatchUninterruptibly(countDownLatch, 1, TimeUnit.SECONDS);
-        log.error(() ->"sequentialApiCall done");
     }
 
     public static void main(String... args) throws Exception {
-        log.error(() ->"Starting run");
         Options opt = new OptionsBuilder()
                 .include(AwsCrtClientBenchmark.class.getSimpleName())
                 .addProfiler(StackProfiler.class)
                 .build();
         Collection<RunResult> run = new Runner(opt).run();
-        log.error(() ->"Finished");
-
     }
 }
